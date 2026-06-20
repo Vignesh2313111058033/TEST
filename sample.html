@@ -1,131 +1,255 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Medical Billing License Check</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>License Validation</title>
+
   <style>
-    :root {
-      color-scheme: light;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f3f6f8;
-      color: #18232b;
+    * {
+      box-sizing: border-box;
     }
+
     body {
       min-height: 100vh;
-      display: grid;
-      place-items: center;
       margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      font-family: Arial, sans-serif;
+      color: #17212b;
+      background: #f1f5f8;
     }
-    main {
-      width: min(460px, calc(100% - 40px));
+
+    .card {
+      width: 100%;
+      max-width: 500px;
       padding: 32px;
-      border-radius: 16px;
-      background: white;
-      box-shadow: 0 18px 50px rgba(25, 48, 61, .12);
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 14px 40px rgba(20, 42, 55, 0.12);
     }
-    h1 { margin: 0 0 8px; font-size: 1.55rem; }
-    p { color: #5b6972; line-height: 1.5; }
-    label { display: block; margin: 20px 0 7px; font-weight: 650; }
-    input, button {
-      box-sizing: border-box;
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+    }
+
+    .description {
+      margin: 0 0 24px;
+      color: #5b6872;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin: 18px 0 7px;
+      font-weight: 700;
+    }
+
+    input,
+    button {
       width: 100%;
       min-height: 46px;
       border-radius: 8px;
-      font: inherit;
+      font-size: 16px;
     }
+
     input {
-      border: 1px solid #bdc8ce;
       padding: 10px 12px;
+      border: 1px solid #b8c5cc;
+      background: #ffffff;
     }
+
+    input:focus {
+      border-color: #147591;
+      outline: 3px solid rgba(20, 117, 145, 0.14);
+    }
+
     button {
-      margin-top: 22px;
+      margin-top: 24px;
       border: 0;
-      background: #176b87;
-      color: white;
+      color: #ffffff;
+      background: #147591;
       font-weight: 700;
       cursor: pointer;
     }
-    button:disabled { opacity: .6; cursor: wait; }
-    #result {
+
+    button:hover {
+      background: #0e6078;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    .result {
       display: none;
       margin-top: 20px;
-      padding: 13px;
+      padding: 14px;
       border-radius: 8px;
       font-weight: 700;
+      line-height: 1.4;
     }
-    #result.success { display: block; color: #12612d; background: #e6f6eb; }
-    #result.error { display: block; color: #8a2020; background: #fdeaea; }
+
+    .result.success {
+      display: block;
+      color: #12602d;
+      background: #e5f6eb;
+      border: 1px solid #acdcbc;
+    }
+
+    .result.error {
+      display: block;
+      color: #8b1d1d;
+      background: #fde9e9;
+      border: 1px solid #efb7b7;
+    }
+
+    .api-url {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #e1e7ea;
+      color: #64717a;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
   </style>
 </head>
+
 <body>
-  <main>
+  <main class="card">
     <h1>License Validation</h1>
-    <p>Enter the license key. The Windows launcher supplies the combined system UUID and BIOS serial automatically.</p>
+    <p class="description">
+      Enter your license key and combined Hardware ID + BIOS ID.
+    </p>
 
     <form id="license-form">
       <label for="license-key">License key</label>
-      <input id="license-key" name="license_key"
-             placeholder="MED-XXXX-XXXX-XXXX" maxlength="18" required>
+      <input
+        id="license-key"
+        name="license_key"
+        type="text"
+        maxlength="18"
+        placeholder="MED-XXXX-XXXX-XXXX"
+        autocomplete="off"
+        required
+      >
 
       <label for="hardware-id">Hardware ID + BIOS ID</label>
-      <input id="hardware-id" name="hardware_id"
-             placeholder="Enter hardware ID and BIOS ID" maxlength="255" required>
+      <input
+        id="hardware-id"
+        name="hardware_id"
+        type="text"
+        maxlength="255"
+        placeholder="Enter combined hardware and BIOS ID"
+        autocomplete="off"
+        required
+      >
 
       <button id="submit-button" type="submit">Check license</button>
     </form>
 
-    <div id="result" role="status" aria-live="polite"></div>
+    <div id="result" class="result" role="status" aria-live="polite"></div>
+
+    <div class="api-url">
+      Activation API:
+      https://medical-licensing-api.onrender.com/api/v1/activate/
+    </div>
   </main>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const hardwareInput = document.getElementById("hardware-id");
-    const result = document.getElementById("result");
-    const button = document.getElementById("submit-button");
-    hardwareInput.value = params.get("hardware_id") || "";
+    const ACTIVATION_API_URL =
+      "https://medical-licensing-api.onrender.com/api/v1/activate/";
 
-    if (!hardwareInput.value) {
-      showResult(
-        "Hardware ID was not detected automatically. You can enter it manually.",
-        false
-      );
+    const form = document.getElementById("license-form");
+    const licenseInput = document.getElementById("license-key");
+    const hardwareInput = document.getElementById("hardware-id");
+    const submitButton = document.getElementById("submit-button");
+    const resultBox = document.getElementById("result");
+
+    const queryParameters = new URLSearchParams(window.location.search);
+    hardwareInput.value = queryParameters.get("hardware_id") || "";
+
+    function normalizeHardwareId(value) {
+      return value
+        .trim()
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
     }
 
     function showResult(message, success) {
-      result.textContent = message;
-      result.className = success ? "success" : "error";
+      resultBox.textContent = message;
+      resultBox.className = success
+        ? "result success"
+        : "result error";
     }
 
-    document.getElementById("license-form").addEventListener("submit", async (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      button.disabled = true;
-      button.textContent = "Checking...";
-      result.className = "";
+
+      const licenseKey = licenseInput.value.trim().toUpperCase();
+      const hardwareId = normalizeHardwareId(hardwareInput.value);
+      const licensePattern =
+        /^MED-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+      if (!navigator.onLine) {
+        showResult(
+          "REJECTED: Browser is offline. Set DevTools Network mode to No throttling.",
+          false
+        );
+        return;
+      }
+
+      if (!licensePattern.test(licenseKey)) {
+        showResult(
+          "REJECTED: License key must use MED-XXXX-XXXX-XXXX.",
+          false
+        );
+        return;
+      }
+
+      if (!hardwareId) {
+        showResult("REJECTED: Hardware ID is required.", false);
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Checking...";
+      resultBox.className = "result";
 
       try {
-        const response = await fetch("/api/v1/activate/", {
+        const response = await fetch(ACTIVATION_API_URL, {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
-            license_key: document.getElementById("license-key").value.trim().toUpperCase(),
-            hardware_id: hardwareInput.value
-              .trim()
-              .replace(/[^A-Za-z0-9]/g, "")
-              .toUpperCase()
+            license_key: licenseKey,
+            hardware_id: hardwareId
           })
         });
+
         const data = await response.json();
         const accepted = response.ok && data.status === "SUCCESS";
+
         showResult(
-          accepted ? `SUCCESS: ${data.message}` : `REJECTED: ${data.message || "License was rejected."}`,
+          accepted
+            ? `SUCCESS: ${data.message}`
+            : `REJECTED: ${data.message || "License validation failed."}`,
           accepted
         );
       } catch (error) {
-        showResult("REJECTED: Could not connect to the licensing API.", false);
+        showResult(
+          "REJECTED: Connection blocked. Check internet access and deploy the API CORS update.",
+          false
+        );
       } finally {
-        button.disabled = false;
-        button.textContent = "Check license";
+        submitButton.disabled = false;
+        submitButton.textContent = "Check license";
       }
     });
   </script>

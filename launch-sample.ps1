@@ -10,7 +10,8 @@ if ([string]::IsNullOrWhiteSpace($systemUuid) -or
 
 $hardwareId = ("{0}{1}" -f $systemUuid.Trim(), $biosSerial.Trim()) -replace "[^A-Za-z0-9]", ""
 $encodedHardwareId = [System.Uri]::EscapeDataString($hardwareId.ToUpperInvariant())
-$url = "http://127.0.0.1:8000/sample/?hardware_id=$encodedHardwareId"
+$samplePath = Join-Path $PSScriptRoot "sample.html"
+$sampleUri = [System.Uri]::new((Resolve-Path $samplePath).Path).AbsoluteUri
+$url = "$sampleUri`?hardware_id=$encodedHardwareId"
 
 Start-Process $url
-

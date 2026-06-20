@@ -146,6 +146,17 @@ class LicenseApiTests(APITestCase):
             ActivationHistory.objects.filter(status="SUCCESS").count(), 2
         )
 
+    def test_activation_endpoint_allows_standalone_browser_cors(self):
+        response = self.client.options(
+            "/api/v1/activate/",
+            HTTP_ORIGIN="https://separate-client.example",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="content-type",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Access-Control-Allow-Origin"], "*")
+
     def test_sixth_hardware_mismatch_auto_blocks_license(self):
         license_obj = self.create_license(hardware_id="REGISTERED-HW")
         for attempt in range(1, 7):
